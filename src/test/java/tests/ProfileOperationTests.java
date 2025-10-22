@@ -14,7 +14,7 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 
-public class ProfileOperationTests extends TestBase{
+public class ProfileOperationTests extends TestBase {
 
     String userName = "basil6";
     String password = "Basil1982!";
@@ -27,14 +27,12 @@ public class ProfileOperationTests extends TestBase{
         LoginBodyModel loginBody = new LoginBodyModel(userName, password);
 
         Response loginResponse = given()
-                .contentType(ContentType.JSON)
+                .spec(BookStoreSpecs.loginRequestSpec())
                 .body(loginBody)
-                .log().all()
                 .when()
                 .post("/Account/v1/Login")
                 .then()
-                .log().all()
-                .statusCode(200)
+                .spec(BookStoreSpecs.universalResponseSpec())
                 .extract().response();
 
         String token = loginResponse.path("token");
@@ -46,12 +44,10 @@ public class ProfileOperationTests extends TestBase{
         // === 2. Получаем первую книгу ===
         BookModel firstBook = given()
                 .contentType(ContentType.JSON)
-                .log().all()
                 .when()
                 .get("/BookStore/v1/Books")
                 .then()
-                .log().all()
-                .statusCode(200)
+                .spec(BookStoreSpecs.universalResponseSpec())
                 .extract()
                 .jsonPath()
                 .getObject("books[0]", BookModel.class);
@@ -65,30 +61,22 @@ public class ProfileOperationTests extends TestBase{
         );
 
         given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer " + token)
+                .spec(BookStoreSpecs.authRequestSpec(token))
                 .body(addBooksRequest)
-                .log().all()
                 .when()
-                .post("https://demoqa.com/BookStore/v1/Books")
+                .post("/BookStore/v1/Books")
                 .then()
-                .log().all()
-                .statusCode(201);
-
+                .spec(BookStoreSpecs.universalResponseSpec());
 
         // === 4. Удаление книги через модель ===
         DeleteBookRequest deleteBookRequest = new DeleteBookRequest(firstBook.getIsbn(), userId);
 
         given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer " + token)
+                .spec(BookStoreSpecs.authRequestSpec(token))
                 .body(deleteBookRequest)
-                .log().all()
                 .when()
                 .delete("/BookStore/v1/Book")
                 .then()
-                .log().all()
-                .statusCode(204);
+                .spec(BookStoreSpecs.universalResponseSpec());
     }
-
 }

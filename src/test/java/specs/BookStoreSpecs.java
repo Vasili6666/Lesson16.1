@@ -2,14 +2,22 @@ package specs;
 
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
+import io.restassured.filter.log.LogDetail;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
-import io.restassured.filter.log.LogDetail;
 
 public class BookStoreSpecs {
 
-    // Уже есть RequestSpec
-    public static RequestSpecification addBookSpec(String token) {
+    // ==================== Авторизация ====================
+    public static RequestSpecification loginRequestSpec() {
+        return new RequestSpecBuilder()
+                .setContentType("application/json")
+                .log(LogDetail.ALL)
+                .build();
+    }
+
+    // ==================== Все действия с токеном ====================
+    public static RequestSpecification authRequestSpec(String token) {
         return new RequestSpecBuilder()
                 .setContentType("application/json")
                 .addHeader("Authorization", "Bearer " + token)
@@ -17,11 +25,10 @@ public class BookStoreSpecs {
                 .build();
     }
 
-    // Новый ResponseSpec для добавления книги
-    public static ResponseSpecification addBookResponseSpec() {
+    // ==================== Универсальный ResponseSpec ====================
+    public static ResponseSpecification universalResponseSpec() {
         return new ResponseSpecBuilder()
-                .expectStatusCode(201)   // проверка успешного добавления
-                .log(LogDetail.ALL)      // логируем ответ полностью
+                .log(LogDetail.ALL)
                 .build();
     }
 }
