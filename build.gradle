@@ -33,6 +33,7 @@ allure {
 dependencies {
     testImplementation(
             "io.rest-assured:rest-assured:$restAssuredVersion",
+            "io.qameta.allure:allure-selenide:$allureVersion",
             "io.rest-assured:json-schema-validator:$restAssuredVersion",
             "io.qameta.allure:allure-rest-assured:$allureVersion",
             "com.codeborne:selenide:7.2.0",
