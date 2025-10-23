@@ -3,31 +3,36 @@ package specs;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.LogDetail;
+import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 
+import static io.restassured.RestAssured.with;
+
 public class BookStoreSpecs {
 
-    // ==================== Авторизация ====================
+    // 🔹 Базовый RequestSpec для логина
     public static RequestSpecification loginRequestSpec() {
         return new RequestSpecBuilder()
-                .setContentType("application/json")
+                .setBaseUri("https://demoqa.com")
+                .setContentType(ContentType.JSON)
                 .log(LogDetail.ALL)
                 .build();
     }
 
-    // ==================== Все действия с токеном ====================
+    // 🔹 RequestSpec с авторизацией
     public static RequestSpecification authRequestSpec(String token) {
-        return new RequestSpecBuilder()
-                .setContentType("application/json")
-                .addHeader("Authorization", "Bearer " + token)
-                .log(LogDetail.ALL)
-                .build();
+        return with()
+                .baseUri("https://demoqa.com")
+                .contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + token)
+                .log().all();
     }
 
-    // ==================== Универсальный ResponseSpec ====================
+    // 🔹 Универсальный ResponseSpec для всех ответов
     public static ResponseSpecification universalResponseSpec() {
         return new ResponseSpecBuilder()
+                //.expectContentType(ContentType.JSON)
                 .log(LogDetail.ALL)
                 .build();
     }

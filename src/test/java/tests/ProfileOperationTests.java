@@ -1,9 +1,7 @@
 package tests;
 
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import models.AddBooksRequest;
-import models.BookModel;
 import models.DeleteBookRequest;
 import models.LoginBodyModel;
 import org.junit.jupiter.api.DisplayName;
@@ -18,10 +16,11 @@ public class ProfileOperationTests extends TestBase {
 
     String userName = "basil6";
     String password = "Basil1982!";
+    String isbn = "9781449325862"; // конкретная книга Git Pocket Guide
 
     @Test
-    @DisplayName("Добавление книги в профиль и удаление через API (реальный ISBN)")
-    void addAndDeleteBook() {
+    @DisplayName("Добавление и удаление конкретной книги (Git Pocket Guide)")
+    void addAndDeleteSpecificBook() {
 
         // === 1. Авторизация ===
         LoginBodyModel loginBody = new LoginBodyModel(userName, password);
@@ -41,23 +40,10 @@ public class ProfileOperationTests extends TestBase {
         System.out.println("🔑 Token: " + token);
         System.out.println("👤 UserId: " + userId);
 
-        // === 2. Получаем первую книгу ===
-        BookModel firstBook = given()
-                .contentType(ContentType.JSON)
-                .when()
-                .get("/BookStore/v1/Books")
-                .then()
-                .spec(BookStoreSpecs.universalResponseSpec())
-                .extract()
-                .jsonPath()
-                .getObject("books[0]", BookModel.class);
-
-        System.out.println("📚 Используем книгу: " + firstBook.getTitle() + ", ISBN: " + firstBook.getIsbn());
-
-        // === 3. Добавление книги в профиль через модель ===
+        // === 2. Добавление книги в профиль ===
         AddBooksRequest addBooksRequest = new AddBooksRequest(
                 userId,
-                List.of(new AddBooksRequest.Isbn(firstBook.getIsbn()))
+                List.of(new AddBooksRequest.Isbn(isbn))
         );
 
         given()
@@ -68,8 +54,8 @@ public class ProfileOperationTests extends TestBase {
                 .then()
                 .spec(BookStoreSpecs.universalResponseSpec());
 
-        // === 4. Удаление книги через модель ===
-        DeleteBookRequest deleteBookRequest = new DeleteBookRequest(firstBook.getIsbn(), userId);
+        // === 3. Удаление книги ===
+        DeleteBookRequest deleteBookRequest = new DeleteBookRequest(isbn, userId);
 
         given()
                 .spec(BookStoreSpecs.authRequestSpec(token))
