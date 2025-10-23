@@ -13,7 +13,7 @@ import static specs.BookStoreSpecs.*;
 
 import io.qameta.allure.Step;
 
-public class ProfileOperationTests extends TestBase {
+public class ProfileTests extends TestBase {
 
     String userName = "basil6";
     String password = "Basil1982!";
