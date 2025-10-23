@@ -3,15 +3,22 @@ package tests;
 import com.codeborne.selenide.Selenide;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
+import models.AddBooksRequest;
+import models.DeleteBookRequest;
+import models.LoginBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Cookie;
 import io.restassured.response.Response;
 
+import java.util.List;
+
 import static com.codeborne.selenide.Selenide.*;
 import static helpers.CustomAllureListener.withCustomTemplates;
 import static io.restassured.RestAssured.given;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
+import static specs.BookStoreSpecs.authRequestSpec;
+import static specs.BookStoreSpecs.loginRequestSpec;
 
 public class ProfileOperationTests extends TestBase {
 
@@ -38,9 +45,9 @@ public class ProfileOperationTests extends TestBase {
     @Step("Логинимся через API и получаем токен, userId и expires")
     private String[] loginViaApi(String userName, String password) {
         Response loginResponse = given()
+                .spec(loginRequestSpec())
                 .filter(withCustomTemplates())
-                .contentType("application/json")
-                .body("{ \"userName\": \"" + userName + "\", \"password\": \"" + password + "\" }")
+                .body(new LoginBodyModel(userName, password))
                 .when()
                 .post("/Account/v1/Login")
                 .then()
@@ -60,40 +67,42 @@ public class ProfileOperationTests extends TestBase {
 
     @Step("Открываем UI (маленькая страница) и добавляем куки для авторизации")
     private void openUiAndSetCookies(String userId, String expires, String token) {
-        open("https://demoqa.com/images/Toolsqa.jpg"); // маленькая страница для установки куки
+        open("https://demoqa.com/images/Toolsqa.jpg");
         getWebDriver().manage().addCookie(new Cookie("userID", userId));
         getWebDriver().manage().addCookie(new Cookie("expires", expires));
         getWebDriver().manage().addCookie(new Cookie("token", token));
-        open("https://demoqa.com/profile"); // открываем профиль после установки куки
+        open("https://demoqa.com/profile");
     }
 
     @Step("Отправляем запрос на добавление книги ISBN {2} через API")
     private void addBookViaApi(String token, String userId, String isbn) {
-        String addBody = "{ \"userId\": \"" + userId + "\", \"collectionOfIsbns\": [{\"isbn\": \"" + isbn + "\"}] }";
+        AddBooksRequest requestBody = new AddBooksRequest(userId, List.of(new AddBooksRequest.Isbn(isbn)));
+
         given()
+                .spec(authRequestSpec(token))
                 .filter(withCustomTemplates())
-                .contentType("application/json")
-                .header("Authorization", "Bearer " + token)
-                .body(addBody)
+                .body(requestBody)
                 .when()
                 .post("/BookStore/v1/Books")
                 .then()
                 .statusCode(201);
+
         Allure.step("Книга добавлена успешно");
     }
 
     @Step("Отправляем запрос на удаление книги ISBN {2} через API")
     private void deleteBookViaApi(String token, String userId, String isbn) {
-        String deleteBody = "{ \"isbn\": \"" + isbn + "\", \"userId\": \"" + userId + "\" }";
+        DeleteBookRequest deleteRequest = new DeleteBookRequest(userId, isbn);
+
         given()
+                .spec(authRequestSpec(token))
                 .filter(withCustomTemplates())
-                .contentType("application/json")
-                .header("Authorization", "Bearer " + token)
-                .body(deleteBody)
+                .body(deleteRequest)
                 .when()
                 .delete("/BookStore/v1/Book")
                 .then()
                 .statusCode(204);
+
         Allure.step("Книга удалена успешно");
     }
 }

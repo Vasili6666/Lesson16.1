@@ -1,11 +1,11 @@
 package models;
 
-import lombok.Data;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @Data
 @AllArgsConstructor
 public class DeleteBookRequest {
-    private String isbn;
     private String userId;
+    private String isbn;
 }
