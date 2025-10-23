@@ -15,8 +15,6 @@ import java.util.Map;
 
 public class TestBase {
 
-    protected static String BASE_URI = "https://demoqa.com";
-
     @BeforeAll
     public static void setUp() {
         Configuration.baseUrl = System.getProperty("baseUrl", "https://demoqa.com");

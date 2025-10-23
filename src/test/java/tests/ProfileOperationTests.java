@@ -1,24 +1,17 @@
 package tests;
 
-import com.codeborne.selenide.Selenide;
-import io.qameta.allure.Allure;
-import io.qameta.allure.Step;
-import models.AddBooksRequest;
-import models.DeleteBookRequest;
 import models.LoginBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Cookie;
 import io.restassured.response.Response;
 
-import java.util.List;
-
 import static com.codeborne.selenide.Selenide.*;
-import static helpers.CustomAllureListener.withCustomTemplates;
-import static io.restassured.RestAssured.given;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static specs.BookStoreSpecs.authRequestSpec;
-import static specs.BookStoreSpecs.loginRequestSpec;
+import static io.restassured.RestAssured.given;
+import static specs.BookStoreSpecs.*;
+
+import io.qameta.allure.Step;
 
 public class ProfileOperationTests extends TestBase {
 
@@ -26,46 +19,32 @@ public class ProfileOperationTests extends TestBase {
     String password = "Basil1982!";
     String isbn = "9781449331818"; // Git Pocket Guide
 
+    @DisplayName("Добавление и удаление книги через API + UI")
     @Test
-    @DisplayName("Добавление и удаление книги через API + UI (Allure шаги)")
-    void addAndDeleteBookApiUiAllureSteps() {
+    void addAndDeleteBookApiUi() {
 
-        String[] tokenUserId = loginViaApi(userName, password);
-        String token = tokenUserId[0];
-        String userId = tokenUserId[1];
-        String expires = tokenUserId[2];
+        Response authResponse = loginViaApi(userName, password);
+        String token = authResponse.path("token");
+        String userId = authResponse.path("userId");
+        String expires = authResponse.path("expires");
 
         openUiAndSetCookies(userId, expires, token);
-
         addBookViaApi(token, userId, isbn);
-
         deleteBookViaApi(token, userId, isbn);
     }
 
-    @Step("Логинимся через API и получаем токен, userId и expires")
-    private String[] loginViaApi(String userName, String password) {
-        Response loginResponse = given()
-                .spec(loginRequestSpec())
-                .filter(withCustomTemplates())
+    @Step("Логинимся через API под пользователем {userName}")
+    private Response loginViaApi(String userName, String password) {
+        return given(loginRequestSpec())
                 .body(new LoginBodyModel(userName, password))
-                .when()
                 .post("/Account/v1/Login")
                 .then()
+                .spec(universalResponseSpec())
                 .statusCode(200)
                 .extract().response();
-
-        String token = loginResponse.path("token");
-        String userId = loginResponse.path("userId");
-        String expires = loginResponse.path("expires");
-
-        Allure.step("Token: " + token);
-        Allure.step("UserId: " + userId);
-        Allure.step("Expires: " + expires);
-
-        return new String[]{token, userId, expires};
     }
 
-    @Step("Открываем UI (маленькая страница) и добавляем куки для авторизации")
+    @Step("Открываем UI и устанавливаем куки для авторизации")
     private void openUiAndSetCookies(String userId, String expires, String token) {
         open("https://demoqa.com/images/Toolsqa.jpg");
         getWebDriver().manage().addCookie(new Cookie("userID", userId));
@@ -74,35 +53,25 @@ public class ProfileOperationTests extends TestBase {
         open("https://demoqa.com/profile");
     }
 
-    @Step("Отправляем запрос на добавление книги ISBN {2} через API")
+    @Step("Добавляем книгу с ISBN {isbn} через API")
     private void addBookViaApi(String token, String userId, String isbn) {
-        AddBooksRequest requestBody = new AddBooksRequest(userId, List.of(new AddBooksRequest.Isbn(isbn)));
-
-        given()
-                .spec(authRequestSpec(token))
-                .filter(withCustomTemplates())
-                .body(requestBody)
-                .when()
+        String addBody = "{ \"userId\": \"" + userId + "\", \"collectionOfIsbns\": [{\"isbn\": \"" + isbn + "\"}] }";
+        given(authRequestSpec(token))
+                .body(addBody)
                 .post("/BookStore/v1/Books")
                 .then()
+                .spec(universalResponseSpec())
                 .statusCode(201);
-
-        Allure.step("Книга добавлена успешно");
     }
 
-    @Step("Отправляем запрос на удаление книги ISBN {2} через API")
+    @Step("Удаляем книгу с ISBN {isbn} через API")
     private void deleteBookViaApi(String token, String userId, String isbn) {
-        DeleteBookRequest deleteRequest = new DeleteBookRequest(userId, isbn);
-
-        given()
-                .spec(authRequestSpec(token))
-                .filter(withCustomTemplates())
-                .body(deleteRequest)
-                .when()
+        String deleteBody = "{ \"isbn\": \"" + isbn + "\", \"userId\": \"" + userId + "\" }";
+        given(authRequestSpec(token))
+                .body(deleteBody)
                 .delete("/BookStore/v1/Book")
                 .then()
+                .spec(universalResponseSpec())
                 .statusCode(204);
-
-        Allure.step("Книга удалена успешно");
     }
 }
