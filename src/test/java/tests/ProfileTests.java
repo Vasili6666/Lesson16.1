@@ -1,48 +1,51 @@
 package tests;
 
+import annotations.WithLogin;
+import extensions.LoginExtension;
 import io.qameta.allure.Step;
+import io.qameta.allure.Description;
+import io.restassured.response.Response;
 import models.AddBooksRequest;
 import models.DeleteBookRequest;
-import models.LoginBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.Cookie;
-import io.restassured.response.Response;
 
 import java.util.List;
 
-import static com.codeborne.selenide.Selenide.open;
+import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
 import static io.restassured.RestAssured.given;
-import static specs.BookStoreSpecs.*;
 import static io.qameta.allure.Allure.step;
+import static specs.BookStoreSpecs.*;
 import static utils.TestData.*;
 
+@ExtendWith(LoginExtension.class)
 public class ProfileTests extends TestBase {
 
-    @DisplayName("Добавление и удаление книги через API + UI")
     @Test
+    @WithLogin
+    @DisplayName("Добавление и удаление книги через API + UI (авторизация с @WithLogin)")
+    @Description("Авторизация выполняется автоматически через аннотацию @WithLogin")
     void addAndDeleteBookApiUi() {
+        String token = System.getProperty("auth.token");
 
-        Response authResponse = loginViaApi(USER_NAME, PASSWORD);
-        String token = authResponse.path("token");
-        String userId = authResponse.path("userId");
-        String expires = authResponse.path("expires");
+        step("Получаем данные пользователя через токен", () -> {
+            Response userResponse = given(authRequestSpec(token))
+                    .get("/Account/v1/User/" + USER_NAME)
+                    .then()
+                    .spec(universalResponseSpec())
+                    .statusCode(200)
+                    .extract().response();
 
-        openUiAndSetCookies(userId, expires, token);
-        addBookViaApi(token, userId, ISBN);
-        deleteBookViaApi(token, userId, ISBN);
-    }
+            String userId = userResponse.path("userId");
+            String expires = userResponse.path("expires");
 
-    @Step("Логинимся через API под пользователем {userName}")
-    private Response loginViaApi(String userName, String password) {
-        return given(loginRequestSpec())
-                .body(new LoginBodyModel(userName, password))
-                .post("/Account/v1/Login")
-                .then()
-                .spec(universalResponseSpec())
-                .statusCode(200)
-                .extract().response();
+            openUiAndSetCookies(userId, expires, token);
+            addBookViaApi(token, userId, ISBN);
+            deleteBookViaApi(token, userId, ISBN);
+        });
     }
 
     @Step("Открываем UI и устанавливаем куки для авторизации")
